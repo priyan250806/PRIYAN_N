@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRIYAN_N :: CYBERSEC.PORTFOLIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&family=Oxanium:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #050808;
+    --bg: #080d0d;
+    --bg2: #0c1414;
+    --bg3: #111c1c;
+    --surface: #0f1a1a;
+    --green: #00ff88;
+    --green-dim: #00cc6a;
+    --green-dark: #003322;
+    --cyan: #00e5ff;
+    --cyan-dim: #00b8cc;
+    --cyan-dark: #002233;
+    --amber: #ffb300;
+    --amber-dim: #cc8f00;
+    --amber-dark: #221a00;
+    --red: #ff3355;
+    --text: #c8e6e6;
+    --text-dim: #6a9090;
+    --text-muted: #3a5555;
+    --border: #1a2e2e;
+    --border-bright: #1f3d3d;
+    --scanline: rgba(0,255,136,0.02);
+    --glow-green: 0 0 20px rgba(0,255,136,0.4), 0 0 60px rgba(0,255,136,0.1);
+    --glow-cyan: 0 0 20px rgba(0,229,255,0.4), 0 0 60px rgba(0,229,255,0.1);
+    --glow-amber: 0 0 20px rgba(255,179,0,0.4), 0 0 60px rgba(255,179,0,0.1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* SCANLINES OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      var(--scanline) 2px,
+      var(--scanline) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* NOISE TEXTURE */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9998;
+    opacity: 0.4;
+  }
+
+  /* ======================== BIOS SCREEN ======================== */
+  #bios {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 60px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #aaa;
+    overflow: hidden;
+  }
+
+  .bios-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    color: var(--cyan);
+    letter-spacing: 8px;
+    text-shadow: var(--glow-cyan);
+    margin-bottom: 4px;
+  }
+
+  .bios-line {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.1s, transform 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .bios-line.show {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .bios-ok { color: var(--green); }
+  .bios-warn { color: var(--amber); }
+  .bios-err { color: var(--red); }
+  .bios-key { color: var(--cyan); }
+
+  .bios-progress {
+    margin-top: 20px;
+    height: 4px;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 2px;
+    overflow: hidden;
+    width: 400px;
+  }
+
+  .bios-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    width: 0%;
+    transition: width 0.1s;
+    box-shadow: var(--glow-green);
+  }
+
+  .bios-bottom {
+    position: absolute;
+    bottom: 30px;
+    left: 60px;
+    right: 60px;
+    display: flex;
+    justify-content: space-between;
+    color: #555;
+    font-size: 11px;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 10px;
+  }
+
+  /* ======================== NAVBAR ======================== */
+  #navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: rgba(5,8,8,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 48px;
+    font-size: 11px;
+    opacity: 0;
+    transform: translateY(-100%);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  #navbar.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .nav-os-tag {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    text-shadow: var(--glow-green);
+    letter-spacing: 2px;
+  }
+
+  .nav-sep { color: var(--text-muted); }
+
+  .nav-path {
+    color: var(--cyan-dim);
+    font-size: 11px;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .nav-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: color 0.2s, background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .nav-link:hover {
+    color: var(--green);
+    background: rgba(0,255,136,0.06);
+  }
+
+  .nav-link .nl-num { color: var(--green-dim); font-size: 9px; }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .nav-clock {
+    color: var(--amber);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  .nav-status {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ======================== HERO ======================== */
+  #hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 80px 60px 60px;
+    position: relative;
+    background: var(--black);
+    overflow: hidden;
+  }
+
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.4;
+  }
+
+  .hero-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, transparent 40%, var(--black) 80%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+  }
+
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .hero-eyebrow::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 12vw, 160px);
+    line-height: 0.9;
+    letter-spacing: 4px;
+    color: var(--text);
+    position: relative;
+    display: inline-block;
+  }
+
+  /* GLITCH */
+  .hero-name::before,
+  .hero-name::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero-name::before {
+    color: var(--cyan);
+    animation: glitch1 4s infinite;
+    clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+  }
+
+  .hero-name::after {
+    color: var(--red);
+    animation: glitch2 4s infinite;
+    clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%);
+  }
+
+  @keyframes glitch1 {
+    0%, 90%, 100% { transform: translate(0); opacity: 0; }
+    92% { transform: translate(-4px, 1px); opacity: 0.8; }
+    94% { transform: translate(4px, -1px); opacity: 0.6; }
+    96% { transform: translate(-2px, 2px); opacity: 0.8; }
+    98% { transform: translate(0); opacity: 0; }
+  }
+
+  @keyframes glitch2 {
+    0%, 88%, 100% { transform: translate(0); opacity: 0; }
+    90% { transform: translate(3px, -1px); opacity: 0.7; }
+    92% { transform: translate(-3px, 1px); opacity: 0.5; }
+    94% { transform: translate(2px, -2px); opacity: 0.7; }
+    96% { transform: translate(0); opacity: 0; }
+  }
+
+  .hero-role {
+    font-family: 'Oxanium', sans-serif;
+    font-size: clamp(16px, 3vw, 28px);
+    font-weight: 300;
+    color: var(--cyan);
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    margin: 12px 0 32px;
+    text-shadow: var(--glow-cyan);
+  }
+
+  /* TERMINAL BOX */
+  .hero-terminal {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    overflow: hidden;
+    max-width: 620px;
+    box-shadow: 0 0 40px rgba(0,229,255,0.08);
+  }
+
+  .terminal-titlebar {
+    background: var(--bg3);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tb-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  .tb-red { background: #ff5f56; }
+  .tb-yellow { background: #ffbd2e; }
+  .tb-green { background: #27c93f; }
+
+  .tb-title {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+  }
+
+  .terminal-body {
+    padding: 16px 20px;
+    font-size: 13px;
+    min-height: 120px;
+  }
+
+  .t-prompt {
+    color: var(--green);
+    margin-right: 8px;
+  }
+
+  .t-path { color: var(--cyan-dim); }
+  .t-cmd { color: var(--text); }
+
+  .t-output {
+    margin: 4px 0 12px 0;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  .t-output span { color: var(--amber); }
+
+  #typing-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 14px;
+    background: var(--green);
+    vertical-align: text-bottom;
+    animation: blink 1s infinite;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+
+  .hero-links {
+    display: flex;
+    gap: 16px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .hero-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-btn.primary {
+    background: var(--green-dark);
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+  }
+
+  .hero-btn.primary:hover {
+    background: var(--green);
+    color: var(--black);
+    box-shadow: var(--glow-green);
+  }
+
+  .hero-btn.secondary {
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dark);
+  }
+
+  .hero-btn.secondary:hover {
+    border-color: var(--cyan);
+    box-shadow: var(--glow-cyan);
+    background: rgba(0,229,255,0.04);
+  }
+
+  /* ======================== SECTIONS COMMON ======================== */
+  section {
+    padding: 100px 60px;
+    position: relative;
+    background: var(--bg);
+  }
+
+  section:nth-child(even) {
+    background: var(--black);
+  }
+
+  .section-header {
+    margin-bottom: 60px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    max-width: 60px;
+    height: 1px;
+    background: var(--green-dark);
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(40px, 6vw, 72px);
+    letter-spacing: 3px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .section-title span { color: var(--cyan); }
+
+  /* ======================== SKILLS ======================== */
+  #skills { background: var(--black); }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .skill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skill-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--c1), var(--c2));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .skill-card:hover::before { opacity: 1; }
+
+  .skill-card:hover {
+    border-color: var(--c1);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--c1) 20%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .skill-card.green { --c1: var(--green); --c2: var(--cyan); }
+  .skill-card.cyan { --c1: var(--cyan); --c2: var(--green); }
+  .skill-card.amber { --c1: var(--amber); --c2: var(--cyan); }
+
+  .skill-icon {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+
+  .skill-name {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
+  }
+
+  .skill-level {
+    height: 2px;
+    background: var(--bg3);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .skill-level-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c1), var(--c2));
+    box-shadow: 0 0 8px var(--c1);
+    border-radius: 1px;
+    transition: width 1.5s cubic-bezier(0.2,0.8,0.2,1);
+    width: 0%;
+  }
+
+  .skill-tag {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ======================== EXPERIENCE ======================== */
+  #experience { background: var(--bg); }
+
+  .timeline {
+    position: relative;
+    max-width: 800px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, var(--green), var(--cyan), transparent);
+  }
+
+  .timeline-item {
+    padding-left: 60px;
+    position: relative;
+    margin-bottom: 48px;
+    opacity: 0;
+    transform: translateX(-20px);
+    transition: opacity 0.5s, transform 0.5s;
+  }
+
+  .timeline-item.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: 12px;
+    top: 4px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--green);
+    box-shadow: 0 0 10px var(--green);
+  }
+
+  .timeline-dot::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .ti-date {
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .ti-company {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+
+  .ti-role {
+    font-size: 13px;
+    color: var(--green);
+    margin-bottom: 14px;
+    letter-spacing: 1px;
+  }
+
+  .ti-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ti-points li {
+    color: var(--text-dim);
+    font-size: 13px;
+    padding-left: 16px;
+    position: relative;
+    line-height: 1.6;
+  }
+
+  .ti-points li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--green-dim);
+  }
+
+  .ti-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--green-dark);
+    color: var(--green);
+    border: 1px solid rgba(0,255,136,0.2);
+    border-radius: 2px;
+    padding: 3px 10px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* ======================== PROJECTS ======================== */
+  #projects { background: var(--black); }
+
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+  }
+
+  .project-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s, transform 0.5s, border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .project-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .project-card:hover {
+    border-color: var(--cyan-dim);
+    box-shadow: 0 0 30px rgba(0,229,255,0.1);
+    transform: translateY(-4px) !important;
+  }
+
+  .pc-header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .pc-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .pc-links {
+    display: flex;
+    gap: 8px;
+  }
+
+  .pc-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 18px;
+    transition: color 0.2s;
+    padding: 4px;
+  }
+
+  .pc-link:hover { color: var(--cyan); }
+
+  .pc-body { padding: 16px 20px 20px; }
+
+  .pc-title {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  .pc-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .pc-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pc-tag {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .pc-tag.green { background: var(--green-dark); color: var(--green); border: 1px solid rgba(0,255,136,0.15); }
+  .pc-tag.cyan { background: var(--cyan-dark); color: var(--cyan); border: 1px solid rgba(0,229,255,0.15); }
+  .pc-tag.amber { background: var(--amber-dark); color: var(--amber); border: 1px solid rgba(255,179,0,0.15); }
+
+  .pc-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  .pc-status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  /* ======================== EDUCATION ======================== */
+  #education { background: var(--bg); }
+
+  .edu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+
+  .edu-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .edu-card:hover {
+    border-color: var(--amber-dim);
+    box-shadow: 0 0 30px rgba(255,179,0,0.08);
+  }
+
+  .edu-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--amber), var(--cyan));
+  }
+
+  .edu-year {
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .edu-degree {
+    font-family: 'Oxanium', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .edu-school {
+    font-size: 12px;
+    color: var(--cyan-dim);
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .edu-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ======================== CONTACT TERMINAL ======================== */
+  #contact { background: var(--black); }
+
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+
+  .contact-info { }
+
+  .contact-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ci-icon {
+    width: 36px; height: 36px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .ci-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .ci-value {
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .ci-value a {
+    color: var(--cyan);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .ci-value a:hover { color: var(--green); }
+
+  /* INTERACTIVE TERMINAL */
+  .contact-terminal {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0,255,136,0.06);
+  }
+
+  .ct-titlebar {
+    background: var(--bg3);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ct-history {
+    padding: 16px 20px;
+    min-height: 240px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ct-history::-webkit-scrollbar { width: 4px; }
+  .ct-history::-webkit-scrollbar-track { background: var(--bg); }
+  .ct-history::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .ct-line { display: flex; flex-wrap: wrap; gap: 4px; }
+  .ct-line .prompt { color: var(--green); white-space: nowrap; }
+  .ct-line .cmd-text { color: var(--text); }
+  .ct-line .resp { color: var(--text-dim); width: 100%; padding-left: 20px; }
+  .ct-line .resp.ok { color: var(--green); }
+  .ct-line .resp.err { color: var(--red); }
+  .ct-line .resp.info { color: var(--cyan); }
+
+  .ct-input-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    gap: 10px;
+  }
+
+  .ct-prompt-label {
+    color: var(--green);
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #ct-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    flex: 1;
+    caret-color: var(--green);
+  }
+
+  .ct-hint {
+    padding: 8px 20px 14px;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* ======================== FOOTER ======================== */
+  footer {
+    background: var(--black);
+    border-top: 1px solid var(--border);
+    padding: 30px 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: var(--green-dim);
+  }
+
+  .footer-right { color: var(--text-muted); }
+
+  /* ======================== CERT BADGES ======================== */
+  .cert-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 48px;
+  }
+
+  .cert-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 16px;
+    transition: border-color 0.2s;
+  }
+
+  .cert-badge:hover {
+    border-color: var(--amber-dim);
+  }
+
+  .cert-badge-icon { font-size: 20px; }
+
+  .cert-badge-text { }
+  .cert-badge-name {
+    font-size: 12px;
+    color: var(--text);
+    font-family: 'Oxanium', sans-serif;
+    font-weight: 600;
+  }
+  .cert-badge-issuer {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ======================== FADE IN ======================== */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ======================== RESPONSIVE ======================== */
+  @media (max-width: 768px) {
+    section, #hero { padding: 80px 24px; }
+    footer { padding: 24px; flex-direction: column; gap: 12px; text-align: center; }
+    .contact-layout { grid-template-columns: 1fr; }
+    #navbar { padding: 0 16px; }
+    .nav-links { display: none; }
+    .hero-name { font-size: 64px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== BIOS SCREEN ==================== -->
+<div id="bios">
+  <div class="bios-logo">CYBER//BIOS v2.4</div>
+  <div style="color:#555;font-size:11px;margin-bottom:24px;">Copyright (C) 2025 PriyaN Systems LLC. All rights reserved.</div>
+  <div id="bios-lines"></div>
+  <div class="bios-progress" style="margin-top:20px">
+    <div class="bios-progress-bar" id="bios-bar"></div>
+  </div>
+</div>
+
+<!-- ==================== NAVBAR ==================== -->
+<nav id="navbar">
+  <div class="nav-left">
+    <span class="nav-os-tag">PRIYAN_OS</span>
+    <span class="nav-sep">/</span>
+    <span class="nav-path">~/cybersec</span>
+  </div>
+  <div class="nav-links">
+    <a href="#skills" class="nav-link"><span class="nl-num">01</span> Skills</a>
+    <a href="#experience" class="nav-link"><span class="nl-num">02</span> Experience</a>
+    <a href="#projects" class="nav-link"><span class="nl-num">03</span> Projects</a>
+    <a href="#education" class="nav-link"><span class="nl-num">04</span> Education</a>
+    <a href="#contact" class="nav-link"><span class="nl-num">05</span> Contact</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-status">
+      <div class="status-dot"></div>
+      <span style="color:var(--green);font-size:10px;letter-spacing:1px;">ONLINE</span>
+    </div>
+    <div class="nav-clock" id="clock">00:00:00</div>
+  </div>
+</nav>
+
+<!-- ==================== HERO ==================== -->
+<section id="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-vignette"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Cybersecurity Student &amp; Builder</div>
+    <div class="hero-name" data-text="PRIYAN N">PRIYAN N</div>
+    <div class="hero-role">Ethical Hacker // Network Defender</div>
+
+    <div class="hero-terminal">
+      <div class="terminal-titlebar">
+        <div class="tb-dot tb-red"></div>
+        <div class="tb-dot tb-yellow"></div>
+        <div class="tb-dot tb-green"></div>
+        <div class="tb-title">bash — priyan@kali:~</div>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">priyan@kali</span><span style="color:var(--text-dim)">:</span><span class="t-path">~</span><span style="color:var(--text-dim)">$</span> <span class="t-cmd">whoami --verbose</span></div>
+        <div class="t-output" id="typing-output"></div>
+        <div><span class="t-prompt">priyan@kali</span><span style="color:var(--text-dim)">:</span><span class="t-path">~</span><span style="color:var(--text-dim)">$</span> <span id="typing-line"></span><span id="typing-cursor"></span></div>
+      </div>
+    </div>
+
+    <div class="hero-links">
+      <a href="https://github.com/priyan250806" target="_blank" class="hero-btn primary">⌥ GitHub</a>
+      <a href="#contact" class="hero-btn secondary">⌘ Contact</a>
+      <a href="https://www.linkedin.com/in/priyan-n-a73a44357" target="_blank" class="hero-btn secondary">⎋ LinkedIn</a>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SKILLS ==================== -->
+<section id="skills">
+  <div class="section-header fade-in">
+    <div class="section-label">Capabilities</div>
+    <div class="section-title">Technical <span>Skills</span></div>
+  </div>
+  <div class="skills-grid" id="skills-grid">
+    <!-- injected by JS -->
+  </div>
+</section>
+
+<!-- ==================== EXPERIENCE ==================== -->
+<section id="experience">
+  <div class="section-header fade-in">
+    <div class="section-label">Track Record</div>
+    <div class="section-title">Work <span>Experience</span></div>
+  </div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="ti-date">June 2025</div>
+      <div class="ti-badge">■ ACTIVE ENTRY</div>
+      <div class="ti-company">Schwing Stetter India Pvt. Ltd.</div>
+      <div class="ti-role">Networking Intern</div>
+      <ul class="ti-points">
+        <li>Assisted in networking setup and basic troubleshooting activities across industrial systems</li>
+        <li>Gained hands-on exposure to network configurations and system connectivity in a real-world plant environment</li>
+        <li>Observed and applied real-time implementation of networking concepts in an industrial setting</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PROJECTS ==================== -->
+<section id="projects">
+  <div class="section-header fade-in">
+    <div class="section-label">Build Log</div>
+    <div class="section-title">Project <span>Ops</span></div>
+  </div>
+  <div class="projects-grid" id="projects-grid">
+    <!-- injected by JS -->
+  </div>
+</section>
+
+<!-- ==================== EDUCATION ==================== -->
+<section id="education">
+  <div class="section-header fade-in">
+    <div class="section-label">Credentials</div>
+    <div class="section-title">Education &amp; <span>Certs</span></div>
+  </div>
+  <div class="edu-grid">
+    <div class="edu-card fade-in">
+      <div class="edu-year">2024 – 2028</div>
+      <div class="edu-degree">B.E. Computer Science &amp; Engineering<br>(Cyber Security)</div>
+      <div class="edu-school">SA Engineering College, Chennai</div>
+      <div class="edu-stat">▸ 2nd Year (4th Sem) &nbsp;|&nbsp; CGPA: 7.96 / 10.0</div>
+    </div>
+    <div class="edu-card fade-in">
+      <div class="edu-year">2024</div>
+      <div class="edu-degree">HSC +2 — Science Stream</div>
+      <div class="edu-school">Nav Bharath Vidyalaya Matric, Hr. Sec. School</div>
+      <div class="edu-stat">▸ Score: 84.5%</div>
+    </div>
+  </div>
+
+  <div class="cert-row fade-in">
+    <div class="cert-badge">
+      <div class="cert-badge-icon">🎓</div>
+      <div class="cert-badge-text">
+        <div class="cert-badge-name">Honours Diploma in Computer Application</div>
+        <div class="cert-badge-issuer">HDCA Certification</div>
+      </div>
+    </div>
+    <div class="cert-badge">
+      <div class="cert-badge-icon">🔐</div>
+      <div class="cert-badge-text">
+        <div class="cert-badge-name">Ethical Hacking Certification</div>
+        <div class="cert-badge-issuer">NPTEL</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CONTACT ==================== -->
+<section id="contact">
+  <div class="section-header fade-in">
+    <div class="section-label">Establish Connection</div>
+    <div class="section-title">Contact <span>Node</span></div>
+  </div>
+  <div class="contact-layout">
+    <div class="contact-info fade-in">
+      <div class="contact-info-item">
+        <div class="ci-icon">📍</div>
+        <div>
+          <div class="ci-label">Location</div>
+          <div class="ci-value">NO:3A First Street, Chennai, India</div>
+        </div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">📱</div>
+        <div>
+          <div class="ci-label">Phone</div>
+          <div class="ci-value"><a href="tel:+916380909399">+91 6380909399</a></div>
+        </div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">✉️</div>
+        <div>
+          <div class="ci-label">Email</div>
+          <div class="ci-value"><a href="mailto:priyan250806@gmail.com">priyan250806@gmail.com</a></div>
+        </div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">🐙</div>
+        <div>
+          <div class="ci-label">GitHub</div>
+          <div class="ci-value"><a href="https://github.com/priyan250806" target="_blank">github.com/priyan250806</a></div>
+        </div>
+      </div>
+      <div class="contact-info-item">
+        <div class="ci-icon">💼</div>
+        <div>
+          <div class="ci-label">LinkedIn</div>
+          <div class="ci-value"><a href="https://www.linkedin.com/in/priyan-n-a73a44357" target="_blank">linkedin.com/in/priyan-n</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fade-in">
+      <div class="contact-terminal">
+        <div class="ct-titlebar">
+          <div class="tb-dot tb-red"></div>
+          <div class="tb-dot tb-yellow"></div>
+          <div class="tb-dot tb-green"></div>
+          <div class="tb-title">ssh priyan@contact.node</div>
+        </div>
+        <div class="ct-history" id="ct-history">
+          <div class="ct-line">
+            <span class="resp info">Connection established. Type <strong>help</strong> for available commands.</span>
+          </div>
+          <div class="ct-line">
+            <span class="resp" style="color:var(--text-muted)">─────────────────────────────────────</span>
+          </div>
+        </div>
+        <div class="ct-input-row">
+          <span class="ct-prompt-label">visitor@priyan:~$</span>
+          <input type="text" id="ct-input" placeholder="type a command..." autocomplete="off" spellcheck="false">
+        </div>
+        <div class="ct-hint">TRY: help · about · skills · projects · contact · clear</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+  <div class="footer-logo">PRIYAN_N</div>
+  <div class="footer-right">© 2025 — Crafted with ❮code❯ &amp; caffeine</div>
+  <div style="color:var(--green);font-size:10px;letter-spacing:2px;">SYSTEM ONLINE</div>
+</footer>
+
+<script>
+// ===================== DATA =====================
+const skills = [
+  { name: 'Python', level: 82, tag: 'SCRIPTING', color: 'green', icon: '🐍' },
+  { name: 'Kali Linux', level: 88, tag: 'OS', color: 'green', icon: '🐉' },
+  { name: 'Networking', level: 85, tag: 'INFRA', color: 'cyan', icon: '🌐' },
+  { name: 'Wireshark', level: 80, tag: 'PACKET ANALYSIS', color: 'cyan', icon: '🦈' },
+  { name: 'Ethical Hacking', level: 78, tag: 'SECURITY', color: 'amber', icon: '🔓' },
+  { name: 'HTML / CSS', level: 84, tag: 'WEB DEV', color: 'green', icon: '🖥' },
+  { name: 'Scapy', level: 75, tag: 'NETWORK TOOL', color: 'cyan', icon: '📡' },
+  { name: 'IDS / IPS', level: 72, tag: 'DEFENSE', color: 'amber', icon: '🛡' },
+  { name: 'Security Tools', level: 80, tag: 'TOOLKIT', color: 'amber', icon: '⚙️' },
+];
+
+const projects = [
+  {
+    icon: '🎣',
+    title: 'Phishing Awareness Platform',
+    desc: 'Responsive web platform with interactive phishing simulation scenarios and user-friendly interfaces. Helps users recognize and avoid phishing attacks through education.',
+    tags: [['HTML', 'green'], ['CSS', 'cyan'], ['Security', 'amber']],
+    status: 'DEPLOYED',
+    gh: 'https://github.com/priyan250806',
+  },
+  {
+    icon: '📡',
+    title: 'Advanced Network Sniffer',
+    desc: 'Packet capture tool built with Python and Scapy for real-time network traffic monitoring. Implements deep packet inspection for protocol, payload, IP, port, and protocol filtering.',
+    tags: [['Python', 'green'], ['Scapy', 'cyan'], ['DPI', 'amber']],
+    status: 'ACTIVE',
+    gh: 'https://github.com/priyan250806',
+  },
+  {
+    icon: '🛡',
+    title: 'Network Intrusion Detection System',
+    desc: 'Rule-based IDS to detect malicious traffic including port scans, DoS attempts, and ARP spoofing. Features real-time alerting to notify administrators of suspicious activity.',
+    tags: [['Python', 'green'], ['Networking', 'cyan'], ['Defense', 'amber']],
+    status: 'ACTIVE',
+    gh: 'https://github.com/priyan250806',
+  },
+  {
+    icon: '🎙',
+    title: 'Audio Capturing Web Tool',
+    desc: 'Linux-based web tool for capturing user audio with permission handling and secure input management. Built with a focus on user privacy and secure data handling.',
+    tags: [['Linux', 'green'], ['Web API', 'cyan'], ['Privacy', 'amber']],
+    status: 'COMPLETE',
+    gh: 'https://github.com/priyan250806',
+  },
+];
+
+// ===================== BIOS BOOT =====================
+const biosLines = [
+  ['PRIYAN_BIOS v2.4.0', '', ''],
+  ['CPU: CyberCore i9-X @ 4.2GHz [64-bit]', '', ''],
+  ['RAM: 32768MB DDR5 @ 6000MHz', 'ok', ' [OK]'],
+  ['Scanning storage: 1TB NVMe', 'ok', ' [OK]'],
+  ['Loading network drivers...', 'ok', ' [PASS]'],
+  ['Initializing security modules...', 'ok', ' [OK]'],
+  ['Wireshark analyzer engine...', 'ok', ' [OK]'],
+  ['Kali Linux subsystem: ', 'ok', ' [ONLINE]'],
+  ['Ethical Hacking toolkit: ', 'ok', ' [ARMED]'],
+  ['Python runtime v3.12.2: ', 'ok', ' [LOADED]'],
+  ['Checking system integrity... ', 'ok', ' [PASS]'],
+  ['Booting PRIYAN_OS...', 'warn', ' [LAUNCHING]'],
+];
+
+const biosContainer = document.getElementById('bios-lines');
+const biosBar = document.getElementById('bios-bar');
+let biosIdx = 0;
+
+function runBios() {
+  if (biosIdx >= biosLines.length) {
+    biosBar.style.width = '100%';
+    setTimeout(() => {
+      document.getElementById('bios').style.transition = 'opacity 0.8s';
+      document.getElementById('bios').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('bios').style.display = 'none';
+        document.getElementById('navbar').classList.add('visible');
+        startTyping();
+      }, 800);
+    }, 600);
+    return;
+  }
+  const [text, cls, suffix] = biosLines[biosIdx];
+  const line = document.createElement('div');
+  line.className = 'bios-line';
+  const clsMap = { ok: 'bios-ok', warn: 'bios-warn', err: 'bios-err', key: 'bios-key' };
+  line.innerHTML = text + (cls ? `<span class="${clsMap[cls] || ''}">${suffix}</span>` : '');
+  biosContainer.appendChild(line);
+  setTimeout(() => line.classList.add('show'), 20);
+  biosBar.style.width = ((biosIdx / biosLines.length) * 90 + 5) + '%';
+  biosIdx++;
+  setTimeout(runBios, 120 + Math.random() * 60);
+}
+
+runBios();
+
+// ===================== CLOCK =====================
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===================== HERO TYPING =====================
+const whoamiOutput = `Name     : <span>Priyan N</span>
+Role     : <span>Cybersecurity Student</span>
+Location : <span>Chennai, India</span>
+Skills   : <span>Ethical Hacking, Networking, Python</span>
+Status   : <span>Seeking Internship Opportunities</span>`;
+
+const typingLines = [
+  'ls -la projects/',
+  'cat skills.txt',
+  'nmap -sV localhost',
+  'python3 exploit.py --simulate',
+  'grep -r "vulnerabilities" ./reports/',
+];
+let typingLineIdx = 0;
+let typingCharIdx = 0;
+let typingDeleting = false;
+const typingEl = document.getElementById('typing-line');
+
+function startTyping() {
+  // First show whoami output
+  document.getElementById('typing-output').innerHTML = whoamiOutput;
+  animateTyping();
+}
+
+function animateTyping() {
+  const current = typingLines[typingLineIdx];
+  if (!typingDeleting) {
+    typingEl.textContent = current.slice(0, typingCharIdx + 1);
+    typingCharIdx++;
+    if (typingCharIdx === current.length) {
+      typingDeleting = true;
+      setTimeout(animateTyping, 1800);
+      return;
+    }
+    setTimeout(animateTyping, 65 + Math.random() * 40);
+  } else {
+    typingEl.textContent = current.slice(0, typingCharIdx - 1);
+    typingCharIdx--;
+    if (typingCharIdx === 0) {
+      typingDeleting = false;
+      typingLineIdx = (typingLineIdx + 1) % typingLines.length;
+      setTimeout(animateTyping, 400);
+      return;
+    }
+    setTimeout(animateTyping, 30);
+  }
+}
+
+// ===================== SKILLS RENDER =====================
+const sg = document.getElementById('skills-grid');
+skills.forEach((s, i) => {
+  const card = document.createElement('div');
+  card.className = `skill-card ${s.color} fade-in`;
+  card.style.transitionDelay = `${i * 0.06}s`;
+  card.innerHTML = `
+    <div class="skill-icon">${s.icon}</div>
+    <div class="skill-name">${s.name}</div>
+    <div class="skill-level"><div class="skill-level-fill" data-level="${s.level}"></div></div>
+    <div class="skill-tag">${s.tag}</div>
+  `;
+  sg.appendChild(card);
+});
+
+// ===================== PROJECTS RENDER =====================
+const pg = document.getElementById('projects-grid');
+projects.forEach((p, i) => {
+  const card = document.createElement('div');
+  card.className = 'project-card';
+  card.style.transitionDelay = `${i * 0.1}s`;
+  card.innerHTML = `
+    <div class="pc-header">
+      <div class="pc-icon">${p.icon}</div>
+      <div class="pc-links">
+        <a href="${p.gh}" target="_blank" class="pc-link" title="GitHub">⌥</a>
+      </div>
+    </div>
+    <div class="pc-body">
+      <div class="pc-title">${p.title}</div>
+      <div class="pc-desc">${p.desc}</div>
+      <div class="pc-tags">${p.tags.map(([t,c])=>`<span class="pc-tag ${c}">${t}</span>`).join('')}</div>
+    </div>
+    <div class="pc-footer">
+      <div class="pc-status-dot"></div>
+      <span style="color:var(--green);font-size:10px;letter-spacing:1px;">${p.status}</span>
+    </div>
+  `;
+  pg.appendChild(card);
+});
+
+// ===================== INTERSECTION OBSERVER =====================
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      // Animate skill bars
+      const bars = e.target.querySelectorAll('.skill-level-fill');
+      bars.forEach(b => {
+        setTimeout(() => { b.style.width = b.dataset.level + '%'; }, 100);
+      });
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.fade-in, .timeline-item, .project-card').forEach(el => io.observe(el));
+
+// ===================== CONTACT TERMINAL =====================
+const cmds = {
+  help: `Available commands:\n  about      — Who is Priyan?\n  skills     — Technical skill stack\n  projects   — Project overview\n  contact    — Contact information\n  github     — Open GitHub profile\n  clear      — Clear terminal\n  status     — System status`,
+  about: `Priyan N is a B.E. CSE (Cyber Security) student at SA Engineering College,\nChennai. Passionate about ethical hacking, network security, and building\npractical cybersecurity tools. Currently seeking internship opportunities.`,
+  skills: `▸ Kali Linux     ████████████████████ 88%\n▸ Networking     ██████████████████░░ 85%\n▸ Python         ████████████████░░░░ 82%\n▸ HTML/CSS       ████████████████░░░░ 84%\n▸ Wireshark      ████████████████░░░░ 80%\n▸ Ethical Hacking ███████████████░░░░ 78%`,
+  projects: `1. Phishing Awareness Platform — HTML/CSS/Security\n2. Advanced Network Sniffer — Python/Scapy\n3. Network IDS — Python/Networking\n4. Audio Capturing Web Tool — Linux/Web API`,
+  contact: `📧 priyan250806@gmail.com\n📱 +91 6380909399\n📍 Chennai, India\n🐙 github.com/priyan250806\n💼 linkedin.com/in/priyan-n-a73a44357`,
+  github: `Opening GitHub profile...`,
+  status: `SYSTEM STATUS\n  CPU:      ████████ 23%\n  MEM:      ██████░░ 68%\n  NETWORK:  ONLINE\n  SECURITY: ARMED\n  UPTIME:   ${Math.floor(Math.random()*9999)} hours`,
+};
+
+const ctHistory = document.getElementById('ct-history');
+const ctInput = document.getElementById('ct-input');
+
+function addLine(prompt, cmd, resp, cls='') {
+  const d = document.createElement('div');
+  d.className = 'ct-line';
+  d.style.flexDirection = 'column';
+  d.innerHTML = `<div style="display:flex;gap:8px"><span class="prompt">${prompt}</span><span class="cmd-text">${cmd}</span></div>`;
+  if (resp) {
+    resp.split('\n').forEach(line => {
+      const r = document.createElement('div');
+      r.style.cssText = 'padding-left:20px;font-size:12px;color:var(--text-dim);line-height:1.8;';
+      if (cls === 'ok') r.style.color = 'var(--green)';
+      if (cls === 'err') r.style.color = 'var(--red)';
+      if (cls === 'info') r.style.color = 'var(--cyan)';
+      r.textContent = line;
+      d.appendChild(r);
+    });
+  }
+  ctHistory.appendChild(d);
+  ctHistory.scrollTop = ctHistory.scrollHeight;
+}
+
+ctInput.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const val = ctInput.value.trim().toLowerCase();
+  if (!val) return;
+  ctInput.value = '';
+
+  if (val === 'clear') {
+    ctHistory.innerHTML = '';
+    return;
+  }
+
+  if (val === 'github') {
+    addLine('visitor@priyan:~$', val, cmds[val], 'info');
+    setTimeout(() => window.open('https://github.com/priyan250806', '_blank'), 500);
+    return;
+  }
+
+  if (cmds[val]) {
+    addLine('visitor@priyan:~$', val, cmds[val], val === 'status' ? 'info' : '');
+  } else {
+    addLine('visitor@priyan:~$', val, `command not found: ${val}. Type 'help' for options.`, 'err');
+  }
+});
+
+ctInput.addEventListener('focus', () => {
+  document.querySelector('.ct-hint').style.color = 'var(--green-dim)';
+});
+ctInput.addEventListener('blur', () => {
+  document.querySelector('.ct-hint').style.color = 'var(--text-muted)';
+});
+</script>
+</body>
+</html>
